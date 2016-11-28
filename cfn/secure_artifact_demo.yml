@@ -1,0 +1,151 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Roles, S3 Bucket, KMS Key, and Policies That Support Secure Artifact Demo"
+
+Parameters:
+  KMSAdminArns: 
+    Type: CommaDelimitedList
+  KMSDecryptorArns:
+    Type: CommaDelimitedList
+  KMSEncryptorArns:
+    Type: CommaDelimitedList
+  KMSKeyAlias:
+    Type: String
+  S3BucketName:
+    Type: String
+
+Resources:
+
+  ArtifactClientRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          Effect: "Allow"
+          Action: "sts:AssumeRole"
+          Principal:
+            Service: "ec2.amazonaws.com"
+      Policies:
+      - PolicyName: "ArtifactConsumer"
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            Effect: "Allow"
+            Action: 
+            - "s3:GetBucketLocation"
+            - "s3:ListAllMyBuckets"
+            Resource: "arn:aws:s3:::*"
+            
+  ArtifactClientInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles: 
+      - !Ref ArtifactClientRole
+
+  ArtifactS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref S3BucketName
+
+  ArtifactBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref ArtifactS3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: "ArtifactRepositoryBucketPolicy"
+        Statement:
+        - Sid: "Fetch"
+          Action:
+          - "s3:GetObject"
+          - "s3:GetObjectAcl"
+          Effect: "Allow"
+          Resource: !Join [ '', ['arn:aws:s3:::', !Ref ArtifactS3Bucket, "/*" ] ]
+          Principal: 
+            AWS: !GetAtt ArtifactClientRole.Arn
+        - Sid: "ListBucket" 
+          Action: "s3:ListBucket"
+          Effect: "Allow"
+          Resource: !Join [ '', ['arn:aws:s3:::', !Ref ArtifactS3Bucket ] ]
+          Principal: 
+            AWS: !GetAtt ArtifactClientRole.Arn 
+
+  ArtifactDemoKMSKey:
+    Type: "AWS::KMS::Key"
+    Properties: 
+      Description: "Secure Artifact Demo Key to encrypt artifacts for storage in s3"
+      EnableKeyRotation: false
+      Enabled: true
+      KeyPolicy: 
+        Version: "2012-10-17"
+        Id: "key-default-1"
+        Statement: 
+          - 
+            Sid: "Administrators"
+            Effect: "Allow"
+            Resource: "*"
+            Principal: 
+              AWS: !Ref KMSAdminArns
+            Action: 
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+          - 
+            Sid: "Encryptors"
+            Effect: "Allow"
+            Resource: "*"
+            Principal: 
+              AWS: !Ref KMSEncryptorArns
+            Action: 
+              - "kms:Encrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: "*"
+          - 
+            Sid: "Decryptors"
+            Effect: "Allow"
+            Resource: "*"
+            Principal: 
+              AWS: !Ref KMSDecryptorArns
+            Action: 
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+          - 
+            Sid: "ArtifactClients"
+            Effect: "Allow"
+            Resource: "*"
+            Principal: 
+              AWS: !GetAtt ArtifactClientRole.Arn
+            Action: 
+              - "kms:Decrypt"
+              - "kms:DescribeKey"
+
+  ArtifactDemoKMSAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Ref KMSKeyAlias
+      TargetKeyId: !Ref ArtifactDemoKMSKey
+
+Outputs: 
+  ArtifactDemoS3Bucket:
+    Value: !Ref ArtifactS3Bucket
+  ArtifactDemoClientInstanceProfile:
+    Value: !Ref ArtifactClientInstanceProfile
+  ArtifactDemoKMSKey:
+    Value: !Ref ArtifactDemoKMSKey
+  ArtifactDemoKMSAlias:
+    Value: !Ref ArtifactDemoKMSAlias
