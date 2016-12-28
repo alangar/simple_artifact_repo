@@ -2,7 +2,8 @@
 
 ## Look up the aws account number
 aws_acct="$(aws ec2 describe-security-groups --group-names 'Default' --query 'SecurityGroups[0].OwnerId' --output text)"
-admin_arns="$(aws iam get-user --output text --query User.Arn),arn:aws:iam::${aws_acct}:user/alan.garver"
+admin_arns="$(aws iam get-user --output text --query User.Arn)"
+#admin_arns="$(aws iam get-user --output text --query User.Arn),arn:aws:iam::${aws_acct}:user/<<<<put_real_user_name>>>>"
 
 ## Hardcoded Variables - Demonstration
 key_alias="alias/artifact-demo"
