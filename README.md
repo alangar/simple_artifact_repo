@@ -1,9 +1,9 @@
-#Simple Secure Build Artifact Repository with AWS
+# Simple Secure Build Artifact Repository with AWS
 This is a set of scripts that can be used to demonstrate good best practices around using S3 and KMS to host a simple artifact repository.
 
 The following scripts are included:
 
-##setup_demo.sh
+## setup_demo.sh
 
 A setup script that will use the AWS CLI on your workstation to create a cloudformation stack.  The template that it runs can be found in cfn/secure_artifact_demo.yml.  It will create a stack with the following resources in the account you currently have configured with the awscli:
 
@@ -19,7 +19,7 @@ You may need to edit the line that starts with "admin_arns" to include a specifi
 Simply run the script to set up the resources in your account.
 
 
-##artifact_push.sh
+## artifact_push.sh
 
 A bash script that simulates publishing an artifact which compresses and client side encrypts a file or directory locally with the KMS Key built by the setup script before pushing to s3.
 
@@ -36,7 +36,7 @@ The script accepts a single argument which is any relative or static path to a f
 
 The object can now be found in the S3 bucket but only decrypted if you have permission to decrypt with the KMS key created by the setup_demo.sh script
 
-##artifact_pull.sh
+## artifact_pull.sh
 
 A bash script that simulates the consumption of an artifact which pulls an object from S3, decrypts the CipherText wrapped with the encrypted artifact with a call to KMS, decrypts the artifact with openssl aes256 using the plain text of the now decrypted key locally, and unpacks the decrypted tar onto the system where it is run.
 
@@ -51,7 +51,7 @@ The script accepts a single argument which is the sha id that was returned by th
 * validate the sha256sum of the decrypted contents
 * exit with a 99 return code if the object does not match, or clean up the temp directory and exit 0 with success
 
-##destroy_demo.sh
+## destroy_demo.sh
 
 A bash script that simply has 2 steps:
 
